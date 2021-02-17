@@ -1,0 +1,73 @@
+{
+  "format": 1,
+  "restore": {
+    "/Users/marius/Documents/F#/monoTest/monoTest.fsproj": {}
+  },
+  "projects": {
+    "/Users/marius/Documents/F#/monoTest/monoTest.fsproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/marius/Documents/F#/monoTest/monoTest.fsproj",
+        "projectName": "monoTest",
+        "projectPath": "/Users/marius/Documents/F#/monoTest/monoTest.fsproj",
+        "packagesPath": "/Users/marius/.nuget/packages/",
+        "outputPath": "/Users/marius/Documents/F#/monoTest/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/marius/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net5.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {},
+          "https://gitlab.com/api/v4/projects/20447487/packages/nuget/index.json": {}
+        },
+        "frameworks": {
+          "net5.0": {
+            "targetAlias": "net5.0",
+            "projectReferences": {}
+          }
+        }
+      },
+      "frameworks": {
+        "net5.0": {
+          "targetAlias": "net5.0",
+          "dependencies": {
+            "FSharp.Core": {
+              "target": "Package",
+              "version": "[5.0.0, )",
+              "generatePathProperty": true
+            },
+            "MonoGame.Content.Builder.Task": {
+              "target": "Package",
+              "version": "[3.8.*, )",
+              "generatePathProperty": true
+            },
+            "MonoGame.Framework.DesktopGL": {
+              "target": "Package",
+              "version": "[3.8.*, )",
+              "generatePathProperty": true
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/5.0.102/RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
