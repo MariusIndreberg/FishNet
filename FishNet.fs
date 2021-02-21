@@ -3,6 +3,39 @@ open Microsoft.Xna.Framework
 open System
 open Microsoft.Xna.Framework.Graphics
 
+type Temperature = Temperature of float 
+
+type Salinity = Salinity of float 
+
+type Density  = Density of float 
+
+type Component =
+    | Position of Vector2
+    | Temperature of Temperature
+    | Salinity of Salinity 
+    | Density of Density 
+
+type Entity = {
+    Id : Guid 
+}
+
+type InputData = {
+    SeaWaterVelocity        : Vector3 
+}
+
+module InputData =  
+    let New sv  = {
+        SeaWaterVelocity = sv 
+    }
+
+let testSimulationMap =   
+    Map.empty 
+    |> Map.add 0 (InputData.New <| Vector3(-5f, -5f, 0f))
+    |> Map.add 1 (InputData.New <| Vector3(4f, -3f, 0f))
+    |> Map.add 2 (InputData.New <| Vector3(2f, -1f, 2f))
+    |> Map.add 3 (InputData.New <| Vector3(-0f, 0.0f, 3f))
+    |> Map.add 4 (InputData.New <| Vector3(-3f, -2f, 1f))
+
 [<Literal>]
 let BoundX = 800 
 
@@ -13,110 +46,70 @@ let BoundY = 600
 type Particle = {
     Uuid        : Guid
     Pos         : Vector2 
-    Velocity    : Vector3
-    Acc         : Vector3
-    Z           : int 
+    Z           : float32 
 }
 module Particle = 
-    let New pos speed = {
+    let New pos = {
         Uuid        = Guid.NewGuid()
         Pos         = pos 
-        Velocity    = Vector3.Zero 
-        Acc         = speed
-        Z           = 0
-    }
+        Z           = 100f
+    } 
 
-    let private checkCollisionBound particle = 
-        particle.Pos.X + particle.Velocity.X < 0f || 
-        particle.Pos.X + particle.Velocity.X > float32 BoundX ||
-        particle.Pos.Y + particle.Velocity.Y < 0f ||
-        particle.Pos.Y + particle.Velocity.Y > float32 BoundY 
-    
-    let private reversePosition particle = 
-        let vel = particle.Velocity * -1f
-        let pos = Vector2(particle.Pos.X + vel.X, particle.Pos.Y + vel.Y)
-        { particle with Pos = pos; Velocity = vel; Acc = particle.Acc * -1f }        
+let private updatePosition step particle = 
+    let data = testSimulationMap.[step]
+    let pos = Vector2(particle.Pos.X + data.SeaWaterVelocity.X, particle.Pos.Y + data.SeaWaterVelocity.Y)
+    { particle with  Pos = pos; } 
 
-    let private updatePosition particle =   
-        let vel = particle.Velocity + particle.Acc   
-        vel.Normalize()
-        let pos' = Vector2(particle.Pos.X + vel.X, particle.Pos.Y + vel.Y)
-        { particle with  Pos = pos'; Velocity = vel }  
+let private updateZ step particle = 
+    let data = testSimulationMap.[step]
+    let z = particle.Z + data.SeaWaterVelocity.Z
+    { particle with  Z = z } 
 
-    let private advectOceanCurrent particle = 
-        if checkCollisionBound particle then 
-            reversePosition particle 
-        else 
-            updatePosition particle
+let advectOcean (step : int) (particles : Particle []) = 
+    particles 
+    |> Array.Parallel.map (updatePosition step)
 
-    let private advectWind particle = 
-        particle
+let advectZ (step : int) (particles : Particle []) = 
+    particles 
+    |> Array.Parallel.map (updateZ step)
 
-    let Update particle =
-        advectOceanCurrent particle 
-            
-
-type Zone = {
-    Draft : Vector3
-    Bound : Rectangle
-}
-module Zone = 
-    let New bound dr = {
-        Draft = dr 
-        Bound = bound
-    }
-    let private inTriangle ((p1, p2, p3) : Vector2*Vector2*Vector2) (p : Vector2) = 
-        let sign (p1 : Vector2) (p2 : Vector2) (p3 : Vector2) = 
-            (p1.X - p3.X) * (p2.Y - p3.Y) - (p2.X - p3.X) * (p1.Y - p3.Y) 
-
-        let d1 = sign p p1 p2
-        let d2 = sign p p2 p3 
-        let d3 = sign p p3 p1
-        not (((d1 < 0f) || (d2 < 0f) || (d3 < 0f)) && ((d1 > 0f) || (d2 > 0f) || (d3 > 0f)))
-
-
-    let Update (p : Particle []) (z : Zone) = 
-        p
-        |> Array.Parallel.map (fun particle -> 
-            if z.Bound.Contains particle.Pos then 
-                let acc' = z.Draft + particle.Acc  
-                acc'.Normalize()
-                { particle with Acc = acc' }
-            else particle )
+type ViewMode = 
+    | TopDown
+    | Side
 
 type Simulation = {
     Particles   : Particle []
-    Zones       : Zone []
-    InputData   : Map<int, Zone []>
-    CurrentStep : int 
+    CurrentStep : int
+    ViewMode    : ViewMode 
 }
 module Simulation = 
     let Init (n : int) = 
-        let r = Random() 
-        {
+        {   
             CurrentStep = 0
-            InputData   = Map.empty
             Particles   = Array.init n (fun x -> 
-                let pos = Vector2((float32)(r.Next() % BoundX), (float32)(r.Next() % BoundY))
-                let vel = Vector3((float32)(r.Next()), (float32)(r.Next()),(float32)(r.Next()))
-                vel.Normalize()
-                Particle.New pos vel 
-            )
-            Zones       = [|
-                Zone.New (Rectangle(0,0,400,600)) (Vector3(0.01f, 0.01f, -0.01f))
-                Zone.New (Rectangle(400,0,400,600)) (Vector3(-0.01f, -0.01f, 0.01f))
-            |]
+                let pos = Vector2(400f, 300f)
+                Particle.New pos ) 
+            ViewMode = TopDown
         }
 
     let Update (s : Simulation) (gt : GameTime ) =
-        s.Zones 
-        |> Array.Parallel.collect (fun zone -> 
-            Zone.Update s.Particles zone )
-        |> Array.distinctBy (fun p -> p.Uuid)
-        //|> fun x -> printfn "%A" x.Length; x
-        |> Array.Parallel.map Particle.Update
-        |> fun x -> { s with Particles = x }
+        s.Particles
+        |> advectOcean s.CurrentStep
+        |> advectZ s.CurrentStep
+        |> fun particles -> { s with CurrentStep = s.CurrentStep + 1; Particles = particles }
 
-    let Draw (s : Simulation) (tex : Texture2D) (sb : SpriteBatch) (gameTime : GameTime) = 
+    let private drawTopDown (s : Simulation) (tex : Texture2D) (sb : SpriteBatch) =
         s.Particles
         |> Array.iter (fun p -> sb.Draw(tex, p.Pos, Color.White) )
+
+    let private drawSide (s : Simulation) (tex : Texture2D) (sb : SpriteBatch) = 
+        s.Particles
+        |> Array.iter (fun p -> sb.Draw(tex, Vector2(p.Pos.X, float32 p.Z), Color.White) )
+
+    let ChangeMode (s : Simulation) (mode : ViewMode) = 
+        { s with ViewMode = mode }
+
+    let Draw (s : Simulation) (tex : Texture2D) (sb : SpriteBatch) (gameTime : GameTime) = 
+        match s.ViewMode with 
+        | TopDown -> drawTopDown s tex sb 
+        | Side -> drawSide s tex sb

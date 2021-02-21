@@ -4,6 +4,7 @@
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Triangle.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="FishNet.fs" />
     <Compile Include="Game1.fs" />
